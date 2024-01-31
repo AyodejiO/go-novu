@@ -5,9 +5,11 @@ import (
 	"time"
 )
 
-type ChannelType string
-type GeneralError error
-type ProviderIdType string
+type (
+	ChannelType    string
+	GeneralError   error
+	ProviderIdType string
+)
 
 const Version = "v1"
 
@@ -546,9 +548,63 @@ type ChangesApplyResponse struct {
 	Data []ChangesGetResponseData `json:"data,omitempty"`
 }
 
-
 type UpdateTenantRequest struct {
-	Name 	 string `json:"name"`
-	Data 	 map[string]interface{} `json:"data"`
-	Identifier string `json:"identifier"`
+	Name       string                 `json:"name"`
+	Data       map[string]interface{} `json:"data"`
+	Identifier string                 `json:"identifier"`
+}
+
+type CreateWorkflowRequest struct {
+	Active             bool   `json:"active"`
+	BlueprintID        string `json:"blueprintId"`
+	Critical           bool   `json:"critical"`
+	Description        string `json:"description"`
+	Draft              bool   `json:"draft"`
+	Name               string `json:"name"`
+	NotificationGoupID string `json:"notificationGroupId"`
+
+	PreferenceSettings Channel         `json:"preferenceSettings"`
+	Steps              []WorkFlowSteps `json:"steps"`
+
+	Tags []string `json:"tags"`
+}
+
+type UpdateWorkflowRequest struct {
+	Critical           bool   `json:"critical"`
+	Description        string `json:"description"`
+	Draft              bool   `json:"draft"`
+	Identifier         string `json:"identifier"`
+	Name               string `json:"name"`
+	NotificationGoupID string `json:"notificationGroupId"`
+
+	PreferenceSettings Channel         `json:"preferenceSettings"`
+	Steps              []WorkFlowSteps `json:"steps"`
+
+	Tags []string `json:"tags"`
+}
+
+type WorkFlowSteps struct {
+	ID               string      `json:"_id"`
+	UUID             string      `json:"uuid"`
+	ParentID         interface{} `json:"_parentId"`
+	TemplateID       string      `json:"_templateId"`
+	Active           bool        `json:"active"`
+	Name             string      `json:"name"`
+	ShouldStopOnFail bool        `json:"shouldStopOnFail"`
+
+	Filters       interface{}           `json:"filters"`
+	Metadata      WorkflowStepsMetadata `json:"metadata"`
+	ReplyCallback interface{}           `json:"replyCallback"`
+	Variants      interface{}           `json:"variants"`
+}
+
+type WorkflowStepsMetadata struct {
+	Amount        int    `json:"amount"`
+	Unit          int    `json:"unit"`
+	DigestKey     string `json:"digestKey"`
+	Type          string `json:"type"`
+	Backoff       int    `json:"backoff"`
+	BackoffAmount int    `json:"backoffAmount"`
+	BackoffUnit   int    `json:"backoffUnit"`
+	UpdateMode    bool   `json:"updateMode"`
 }
