@@ -1,88 +1,115 @@
 package lib
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"net/http"
+	"strconv"
 )
 
 type WorkflowService service
 
-func (e *WorkflowService) CreateTenant(ctx context.Context, name string,identifier string) (JsonResponse, error) {
-	var resp JsonResponse
-	URL := e.client.config.BackendURL.JoinPath("tenants")
-	n := map[string]string{"name": name,"identifier":identifier}
-	jsonBody, _ := json.Marshal(n)
-	b := bytes.NewBuffer(jsonBody)
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, URL.String(), b)
+// CreateWorkflow creates a new workflow with the specified parameters.
+// ctx: Context for request cancellation and deadline.
+// workflow: The workflow object to be created, structured as a CreateWorkflowRequest.
+// Returns: JsonResponse containing the result of the workflow creation and an error if any.
+// On error, an empty JsonResponse and the error are returned.
+func (e *WorkflowService) CreateWorkflow(ctx context.Context, workflow CreateWorkflowRequest) (JsonResponse, error) {
+	URL := e.client.config.BackendURL.JoinPath("workflows")
+	payload := WorkflowCreatePayload{Data: &workflow}
+
+	resp, err := e.client.makeHTTPRequest(ctx, http.MethodPost, URL.String(), payload)
 	if err != nil {
-		return resp, err
+		return JsonResponse{}, err
 	}
-	_, err = e.client.sendRequest(req, &resp)
+	return resp, nil
+}
+
+// UpdateWorkflow updates an existing workflow identified by the given identifier.
+// ctx: Context for request cancellation and deadline.
+// identifier: A unique string identifying the workflow to be updated.
+// workflow: The updated workflow data, structured as a pointer to UpdateWorkflowRequest.
+// Returns: JsonResponse containing the result of the update operation and an error if any.
+// On error, the JsonResponse received up to the point of error and the error are returned.
+func (e *WorkflowService) UpdateWorkflow(ctx context.Context, identifier string, workflow *UpdateWorkflowRequest) (JsonResponse, error) {
+	URL := e.client.config.BackendURL.JoinPath("workflows", identifier)
+	payload := WorkflowUpdatePayload{Data: workflow}
+
+	resp, err := e.client.makeHTTPRequest(ctx, http.MethodPut, URL.String(), payload)
 	if err != nil {
 		return resp, err
 	}
 	return resp, nil
 }
 
-func (e *WorkflowService) GetTenants(ctx context.Context,page string,limit string) (JsonResponse, error) {
-	var resp JsonResponse
-	URL := e.client.config.BackendURL.JoinPath("tenants")
-	v := URL.Query();
-	v.Set("page",page)
-	v.Set("limit",limit)
+// UpdateWorkflowStatus updates the active status of a workflow.
+// ctx: Context for request cancellation and deadline.
+// identifier: A unique string identifying the workflow whose status is to be updated.
+// status: A boolean value representing the new active status of the workflow.
+// Returns: JsonResponse containing the result of the status update and an error if any.
+// On error, the JsonResponse received up to the point of error and the error are returned.
+func (e *WorkflowService) UpdateWorkflowStatus(ctx context.Context, identifier string, status bool) (JsonResponse, error) {
+	URL := e.client.config.BackendURL.JoinPath("workflows", identifier)
+	payload := WorkflowStatusUpdatePayload{
+		Data: struct {
+			Active bool `json:"active"`
+		}{
+			Active: status,
+		},
+	}
+
+	resp, err := e.client.makeHTTPRequest(ctx, http.MethodPut, URL.String(), payload)
+	if err != nil {
+		return resp, err
+	}
+	return resp, nil
+}
+
+// GetWorkflows retrieves a list of workflows with pagination support.
+// ctx: Context for request cancellation and deadline.
+// page: Integer specifying the page number in the pagination.
+// limit: Integer specifying the number of items per page.
+// Returns: JsonResponse containing the list of workflows and an error if any.
+// On error, the JsonResponse received up to the point of error and the error are returned.
+func (e *WorkflowService) GetWorkflows(ctx context.Context, page int, limit int) (JsonResponse, error) {
+	URL := e.client.config.BackendURL.JoinPath("workflows")
+	v := URL.Query()
+	v.Set("page", strconv.Itoa(page))
+	v.Set("limit", strconv.Itoa(limit))
 	URL.RawQuery = v.Encode()
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, URL.String(), http.NoBody)
-	if err != nil {
-		return resp, err
-	}
-	_, err = e.client.sendRequest(req, &resp)
+
+	resp, err := e.client.makeHTTPRequest(ctx, http.MethodGet, URL.String(), http.NoBody)
 	if err != nil {
 		return resp, err
 	}
 	return resp, nil
 }
 
-func (e *WorkflowService) GetTenant(ctx context.Context,identifier string) (JsonResponse, error) {
+// GetTenant retrieves details of a specific tenant (workflow) identified by the identifier.
+// ctx: Context for request cancellation and deadline.
+// identifier: A unique string identifying the tenant (workflow).
+// Returns: JsonResponse containing the tenant's details and an error if any.
+// On error, the JsonResponse received up to the point of error and the error are returned.
+func (e *WorkflowService) GetTenant(ctx context.Context, identifier string) (JsonResponse, error) {
 	var resp JsonResponse
-	URL := e.client.config.BackendURL.JoinPath("tenants",identifier)
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, URL.String(), http.NoBody)
-	if err != nil {
-		return resp, err
-	}
-	_, err = e.client.sendRequest(req, &resp)
+	URL := e.client.config.BackendURL.JoinPath("workflows", identifier)
+
+	resp, err := e.client.makeHTTPRequest(ctx, http.MethodGet, URL.String(), http.NoBody)
 	if err != nil {
 		return resp, err
 	}
 	return resp, nil
 }
 
-func (e *WorkflowService) DeleteTenant(ctx context.Context, identifier string) (JsonResponse, error) {
+// DeleteWorkflow deletes a workflow identified by the given identifier.
+// ctx: Context for request cancellation and deadline.
+// identifier: A unique string identifying the workflow to be deleted.
+// Returns: JsonResponse confirming the deletion and an error if any.
+// On error, the JsonResponse received up to the point of error and the error are returned.
+func (e *WorkflowService) DeleteWorkflow(ctx context.Context, identifier string) (JsonResponse, error) {
 	var resp JsonResponse
-	URL := e.client.config.BackendURL.JoinPath("tenants", identifier)
-	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, URL.String(), http.NoBody)
-	if err != nil {
-		return resp, err
-	}
-	_, err = e.client.sendRequest(req, &resp)
-	if err != nil {
-		return resp, err
-	}
-	return resp, nil
-}
+	URL := e.client.config.BackendURL.JoinPath("workflows", identifier)
 
-
-func (e *WorkflowService) UpdateTenant(ctx context.Context, identifier string,updateTenantObject *UpdateTenantRequest) (JsonResponse, error) {
-	var resp JsonResponse
-	URL := e.client.config.BackendURL.JoinPath("tenants", identifier)
-	jsonBody, _ := json.Marshal(updateTenantObject)
-	b := bytes.NewBuffer(jsonBody)
-	req, err := http.NewRequestWithContext(ctx, http.MethodPatch, URL.String(), b)
-	if err != nil {
-		return resp, err
-	}
-	_, err = e.client.sendRequest(req, &resp)
+	resp, err := e.client.makeHTTPRequest(ctx, http.MethodDelete, URL.String(), http.NoBody)
 	if err != nil {
 		return resp, err
 	}

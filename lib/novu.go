@@ -1,6 +1,8 @@
 package lib
 
 import (
+	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -51,7 +53,7 @@ type APIClient struct {
 	IntegrationsApi  *IntegrationService
 	InboundParserApi *InboundParserService
 	LayoutApi        *LayoutService
-	TenantApi	       *TenantService
+	TenantApi        *TenantService
 }
 
 type service struct {
@@ -78,19 +80,19 @@ func NewAPIClient(apiKey string, cfg *Config) *APIClient {
 					}
 				}
 				if attemptNum == 0 {
-					return cfg.RetryConfig.InitialDelay //wait for InitialDelay on 1st retry
+					return cfg.RetryConfig.InitialDelay // wait for InitialDelay on 1st retry
 				}
 				mult := math.Pow(2, float64(attemptNum)) * float64(min)
 				sleep := time.Duration(mult)
-				//float64(sleep) != mult is to make sure there is no conversion error
-				//if there is a conversion error, number is huge and we set the sleep to max
+				// float64(sleep) != mult is to make sure there is no conversion error
+				// if there is a conversion error, number is huge and we set the sleep to max
 				if float64(sleep) != mult || sleep > max {
 					sleep = max
 				}
 				return sleep
 			}
 		} else {
-			retyableClient.RetryMax = 0 //by default no retry
+			retyableClient.RetryMax = 0 // by default no retry
 		}
 		cfg.HttpClient = retyableClient.StandardClient()
 	}
@@ -148,6 +150,21 @@ func (c APIClient) sendRequest(req *http.Request, resp interface{}) (*http.Respo
 	return res, nil
 }
 
+func (c APIClient) makeHTTPRequest(ctx context.Context, method, url string, body interface{}) (JsonResponse, error) {
+	var resp JsonResponse
+	jsonBody, err := json.Marshal(body)
+	if err != nil {
+		return resp, err
+	}
+	b := bytes.NewBuffer(jsonBody)
+	req, err := http.NewRequestWithContext(ctx, method, url, b)
+	if err != nil {
+		return resp, err
+	}
+	_, err = c.sendRequest(req, &resp)
+	return resp, err
+}
+
 func (c APIClient) mergeStruct(target, patch interface{}) (interface{}, error) {
 	var m map[string]interface{}
 
@@ -168,7 +185,6 @@ func (c APIClient) decode(v interface{}, b []byte) (err error) {
 }
 
 func buildBackendURL(cfg *Config) *url.URL {
-
 	if cfg.BackendURL == nil {
 		rawURL := fmt.Sprintf("%s/%s", NovuURL, NovuVersion)
 		return MustParseURL(rawURL)

@@ -608,3 +608,17 @@ type WorkflowStepsMetadata struct {
 	BackoffUnit   int    `json:"backoffUnit"`
 	UpdateMode    bool   `json:"updateMode"`
 }
+
+type WorkflowCreatePayload struct {
+	Data *CreateWorkflowRequest `json:"data"`
+}
+
+type WorkflowUpdatePayload struct {
+	Data *UpdateWorkflowRequest `json:"data"`
+}
+
+type WorkflowStatusUpdatePayload struct {
+	Data struct {
+		Active bool `json:"active"`
+	} `json:"data"`
+}
